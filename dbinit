@@ -1,0 +1,68 @@
+import sqlite3
+
+#create the database
+def create_db():
+    conn = sqlite3.connect('project_db')
+    print("created database successfully")
+    conn.close()
+
+def create_tables():
+    #create tables
+    conn = sqlite3.connect('project_db')
+    c = conn.cursor()
+    
+    create_products_table_query = '''CREATE TABLE IF NOT EXISTS products(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        store TEXT NOT NULL,
+        price REAL NOT NULL,
+        image TEXT NOT NULL,
+        URL TEXT UNIQUE NOT NULL,
+        availability TEXT NOT NULL,
+        sale BOOLEAN DEFAULT 0 NOT NULL
+    )'''
+
+    c.execute(create_products_table_query)
+
+    create_stores_table_query = """
+    CREATE TABLE IF NOT EXISTS stores(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        domain TEXT NOT NULL
+    )
+    """
+    c.execute(create_stores_table_query)
+
+    #close resources
+    print("created tables successfully")
+    conn.commit()
+    conn.close()
+
+def insert_stores():
+    conn = sqlite3.connect('project_db')
+    c = conn.cursor()
+
+    query = '''
+        INSERT INTO stores(name, domain) VALUES
+        ('%s', '%s')
+    '''
+
+    c.execute(query, ('Uniqlo', 'Uniqlo.com'))
+
+
+    c.close()
+    conn.close()
+    
+
+def select_all_products():
+    conn = sqlite3.connect('project_db')
+    c = conn.cursor()
+    select_all_products_query = '''SELECT * FROM products'''
+    c.execute(select_all_products_query)
+    products = c.fetchall()
+    conn.close()
+    print(products)
+
+if(__name__ == '__main__'):
+    create_db()
+    create_tables()
