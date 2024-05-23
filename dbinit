@@ -39,30 +39,54 @@ def create_tables():
     conn.close()
 
 def insert_stores():
-    conn = sqlite3.connect('project_db')
-    c = conn.cursor()
+    try:
+        conn = sqlite3.connect('project_db')
+        c = conn.cursor()
 
-    query = '''
-        INSERT INTO stores(name, domain) VALUES
-        ('%s', '%s')
-    '''
+        query = '''
+            INSERT INTO stores(name, domain) VALUES
+            (?, ?)
+        '''
 
-    c.execute(query, ('Uniqlo', 'Uniqlo.com'))
+        c.execute(query, ('Uniqlo', 'www.uniqlo.com'))
 
+        c.close()
+        conn.commit()
+        conn.close()
+    except sqlite3.Error as e:
+        print(e)
+        return
 
-    c.close()
-    conn.close()
+    print("inserted stores successfully")
     
 
 def select_all_products():
-    conn = sqlite3.connect('project_db')
-    c = conn.cursor()
-    select_all_products_query = '''SELECT * FROM products'''
-    c.execute(select_all_products_query)
-    products = c.fetchall()
+    try:
+        conn = sqlite3.connect('project_db')
+        c = conn.cursor()
+        select_all_products_query = '''SELECT * FROM products'''
+        c.execute(select_all_products_query)
+
+        products = c.fetchall()
+        conn.commit()
+    except sqlite3.Error as e:
+        print(e)
+        return
+    c.close()
     conn.close()
     print(products)
 
+def show_tables():
+    conn = sqlite3.connect('project_db')
+    c = conn.cursor()
+    c.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = c.fetchall()
+    conn.close()
+    print(tables)
+
 if(__name__ == '__main__'):
-    create_db()
-    create_tables()
+    #create_db()
+    #create_tables()
+    #insert_stores()
+    show_tables()
+    select_all_products()

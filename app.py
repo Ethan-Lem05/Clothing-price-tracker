@@ -2,7 +2,7 @@ import flask;
 from selenium import webdriver;  # This will raise an ImportError if selenium is not installed
 from urllib.parse import urlparse
 import sqlite3
-import jsonify
+from flask import jsonify
 import uniqlo
 
 app = flask.Flask(__name__)
@@ -21,7 +21,7 @@ def get_products():
         # check filtering arguments 
         if store is None and price_range is None:
             query = 'SELECT * FROM products'
-            results = execute_query_to_db(query=query, values=None)
+            results = execute_query_to_db(query=query, values=())
         elif price_range is None: 
             query = 'SELECT * FROM products WHERE store = ?'
             results = execute_query_to_db(query=query, values=(store,))
@@ -34,18 +34,21 @@ def get_products():
     except sqlite3.Error as e:
         return str(e), 500
 
-    results_json = jsonify.dumps(results)
+    print(results)
+    results_json = jsonify(results)
 
     return results_json, 200
 
-@app.route('/update_information')
-def update_products(product_ids):
+@app.route('/update_information', methods=['PUT'])
+def update_products():
 
-    product_ids = flask.request.args.get('product_ids').split(',')
+    product_ids = flask.request.args.get('product_ids')
+    if product_ids is not None:
+        product_ids = product_ids.split(',')
 
 #grab product URL
     try:
-        conn = sqlite3.connect('project_db.db')
+        conn = sqlite3.connect('project_db')
         c = conn.cursor()
 
         query = 'SELECT URL FROM products WHERE id IN ({})'.format(','.join('?' for _ in product_ids))
@@ -88,7 +91,7 @@ def delete_product(product_ids):
     product_ids = product_ids.split(',')
 
     try:
-        conn = sqlite3.connect('project_db.db')
+        conn = sqlite3.connect('project_db')
         c = conn.cursor()
 
         query = 'DELETE FROM products WHERE id IN ({})'.format(','.join('?' for _ in product_ids))
@@ -105,13 +108,15 @@ def delete_product(product_ids):
 def add_product():
     product_url = flask.request.args.get('product_url', default=None)
 
-    URL_root = str(get_URL_root(product_url))
+    URL_root = get_URL_root(product_url)
+    print(URL_root)
 
     #select which store to scrape from TODO: add more cases when more stores get implemented
-    if URL_root == 'uniqlo.com':
-        uniqlo_store.scrape_product(product_url)
+    if URL_root == 'www.uniqlo.com':
+        scrape = uniqlo_store.scrape_product(product_url)
+        print(scrape)
     else:
-        return URL_root, 400
+        return "URL not found", 400
     
     return 'Product added successfully', 200
     
@@ -119,45 +124,32 @@ def add_product():
 #helper functions
 def get_URL_root(URL): 
     #valid domains this app recognizes --> can be expanded
-    try:
-        conn = sqlite3.connect('project_db.db')
-        c = conn.cursor()
-
-        #grab domains from stores
-        query = 'SELECT domain FROM stores'
-        c.execute(query)
-
-        valid_domains = c.fetchall()
-    except sqlite3.Error as e:
-        return str(e), 500
-
-    c.close()
-    conn.close()
+    valid_domains = execute_query_to_db('SELECT domain FROM stores', ())
 
     #parse the URL
     domain = urlparse(URL).netloc
 
     #check if the domain is valid
     if domain in valid_domains:
+        print(domain)
         return domain
     else:
         return None
     
 def execute_query_to_db(query, values):
     try:
-        conn = sqlite3.connect('project_db.db')
+        conn = sqlite3.connect('project_db')
         c = conn.cursor()
 
         c.execute(query, values)
+        results = c.fetchall()
 
         conn.commit()
     except sqlite3.Error as e:
         return str(e), 500
-    
-    results = c.fetchall()
-
-    conn.close()
-    c.close()
+    finally:
+        c.close()
+        conn.close()
 
     return results
 

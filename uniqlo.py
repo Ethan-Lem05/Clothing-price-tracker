@@ -43,7 +43,10 @@ class Uniqlo(BaseStore):
         #grab product availability
         product_availability = driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/section/div[2]/div[2]/div[5]/div[1]/p').text
         #product sale
-        product_sale = driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/section/div[2]/div[2]/ul/li/p').text
+        try:
+            product_sale = driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/section/div[2]/div[2]/ul/li/p').text
+        except NoSuchElementException:
+            product_sale = "Not on Sale"
 
         #check to see if the product is on sale 
 
@@ -54,15 +57,16 @@ class Uniqlo(BaseStore):
         #open database connection
 
         try:
-            conn = sqlite3.connect('project_db.db')
+            conn = sqlite3.connect('project_db')
             c = conn.cursor()
             
-            query = 'INSERT INTO products (name, price, store, image, URL, availability, sale) VALUES (%s, %s, %s, %s, %s, %s, %s)'
-            c.execute(query, product_name, product_price, "Uniqlo", product_image, product_url, product_availability, product_sale)
+            query = 'INSERT INTO products (name, price, store, image, URL, availability, sale) VALUES (?, ?, ?, ?, ?, ?, ?)'
+            c.execute(query, (product_name, product_price, "Uniqlo", product_image, product_url, product_availability, product_sale))
         except sqlite3.Error as e:
             return str(e)
 
         c.close()
+        conn.commit()
         conn.close()
     
     @overrides
